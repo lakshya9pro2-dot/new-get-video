@@ -173,6 +173,8 @@ static void runHttpServer(int port, const BrowserOptions& default_options) {
                         req_options.referer = val;
                     } else if (key == "user-agent") {
                         req_options.user_agent = val;
+                    } else if (key == "verbose") {
+                        req_options.verbose = (val == "1" || val == "true");
                     }
                 }
             }
@@ -199,7 +201,9 @@ static void runHttpServer(int port, const BrowserOptions& default_options) {
         } else {
             json << "{\n"
                  << "  \"success\": false,\n"
-                 << "  \"url\": null\n"
+                 << "  \"url\": null,\n"
+                 << "  \"error\": \"" << result.error_message << "\",\n"
+                 << "  \"status\": " << static_cast<int>(result.status) << "\n"
                  << "}\n";
         }
 

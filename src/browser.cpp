@@ -291,11 +291,21 @@ void Browser::onResourceLoadStarted(WebKitWebView* view, WebKitWebResource* reso
 
     std::string s_uri(uri);
 
+    if (self->m_options.verbose) {
+        std::cerr << "[DEBUG] Request: " << s_uri << "\n";
+    }
+
     // Check if the resource URL itself immediately matches HLS
     std::string reason;
     if (isHlsMatch(s_uri, "", &reason)) {
         self->onHlsDetected(s_uri, reason);
         return;
+    }
+
+    // If an idle timeout is ticking, extend it because network activity is still occurring
+    if (self->m_idle_timeout_id > 0) {
+        g_source_remove(self->m_idle_timeout_id);
+        self->m_idle_timeout_id = g_timeout_add(8000, onIdleTimeoutFired, self);
     }
 
     // Connect notify::response to inspect response headers as soon as they arrive
@@ -401,6 +411,10 @@ void Browser::onScriptMessageReceived(WebKitUserContentManager* ucm, JSCValue* v
             std::string detected(str);
             g_free(str);
 
+            if (self->m_options.verbose) {
+                std::cerr << "[DEBUG] JS message received: " << detected << "\n";
+            }
+
             std::string reason;
             if (isHlsMatch(detected, "", &reason)) {
                 self->onHlsDetected(detected, "JS Interception: " + reason);
@@ -472,9 +486,10 @@ void Browser::onLoadChanged(WebKitWebView* view, WebKitLoadEvent load_event, gpo
     if (!self || self->m_state.found_hls) return;
 
     if (load_event == WEBKIT_LOAD_FINISHED) {
-        // Document finished loading. Allow grace period (4500ms) for async JS/player bootstrapping.
+        // Document finished loading. Allow grace period (up to 15000ms) for async JS/player bootstrapping.
         if (self->m_idle_timeout_id == 0) {
-            self->m_idle_timeout_id = g_timeout_add(4500, onIdleTimeoutFired, self);
+            guint grace = std::min(15000u, self->m_options.timeout_ms);
+            self->m_idle_timeout_id = g_timeout_add(grace, onIdleTimeoutFired, self);
         }
     }
 }
