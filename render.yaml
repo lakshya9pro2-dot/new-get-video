@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: wpe-hls-extractor
+    runtime: docker
+    plan: free
+    region: oregon
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: WEBKIT_FORCE_SANDBOX
+        value: "0"
+      - key: WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS
+        value: "1"
+      - key: LIBGL_ALWAYS_SOFTWARE
+        value: "1"
