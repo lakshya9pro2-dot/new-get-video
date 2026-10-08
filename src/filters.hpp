@@ -18,6 +18,11 @@ bool isValidUrl(const std::string& url);
 std::string resolveUrl(const std::string& base_url, const std::string& relative_url);
 
 /**
+ * Extract the Origin (scheme://host[:port]) from an HTTP/HTTPS URL.
+ */
+std::string getOrigin(const std::string& url);
+
+/**
  * Normalize a MIME type string:
  * - Converts to lower case
  * - Strips leading/trailing whitespace

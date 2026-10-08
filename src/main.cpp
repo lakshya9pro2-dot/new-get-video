@@ -24,6 +24,7 @@ static void printHelp(const char* prog) {
               << "  --user-agent <str>   Custom HTTP User-Agent header\n"
               << "  --referer <str>      Custom HTTP Referer header\n"
               << "  --verbose            Print diagnostic logs and timings to stderr\n"
+              << "  --json               Output extraction result as JSON with url and headers\n"
               << "  --server             Run in lightweight HTTP API server mode\n"
               << "  --port <port>        HTTP server listening port (default: 8080)\n"
               << "  -h, --help           Display this help message and exit\n\n"
@@ -194,9 +195,16 @@ static void runHttpServer(int port, const BrowserOptions& default_options) {
 
         std::ostringstream json;
         if (result.status == ExtractionStatus::HLS_FOUND) {
+            std::string origin = getOrigin(!req_options.referer.empty() ? req_options.referer : target_url);
+            std::string referer = !req_options.referer.empty() ? req_options.referer : origin;
+
             json << "{\n"
                  << "  \"success\": true,\n"
-                 << "  \"url\": \"" << result.hls_url << "\"\n"
+                 << "  \"url\": \"" << result.hls_url << "\",\n"
+                 << "  \"headers\": {\n"
+                 << "    \"Origin\": \"" << origin << "\",\n"
+                 << "    \"Referer\": \"" << referer << "\"\n"
+                 << "  }\n"
                  << "}\n";
         } else {
             json << "{\n"
@@ -228,6 +236,7 @@ int main(int argc, char* argv[]) {
     std::string target_url;
     WpeExtractor::BrowserOptions options;
     bool server_mode = false;
+    bool json_mode = false;
     int server_port = 8080;
 
     for (int i = 1; i < argc; ++i) {
@@ -237,6 +246,8 @@ int main(int argc, char* argv[]) {
             return 0;
         } else if (arg == "--server") {
             server_mode = true;
+        } else if (arg == "--json") {
+            json_mode = true;
         } else if (arg == "--port" && i + 1 < argc) {
             server_mode = true;
             server_port = std::atoi(argv[++i]);
@@ -271,6 +282,30 @@ int main(int argc, char* argv[]) {
 
     // Run extraction
     WpeExtractor::ExtractionResult res = WpeExtractor::HlsExtractor::extract(target_url, options);
+
+    if (json_mode) {
+        std::string origin = WpeExtractor::getOrigin(!options.referer.empty() ? options.referer : target_url);
+        std::string referer = !options.referer.empty() ? options.referer : origin;
+        if (res.status == WpeExtractor::ExtractionStatus::HLS_FOUND) {
+            std::cout << "{\n"
+                      << "  \"success\": true,\n"
+                      << "  \"url\": \"" << res.hls_url << "\",\n"
+                      << "  \"headers\": {\n"
+                      << "    \"Origin\": \"" << origin << "\",\n"
+                      << "    \"Referer\": \"" << referer << "\"\n"
+                      << "  }\n"
+                      << "}\n";
+            return 0;
+        } else {
+            std::cout << "{\n"
+                      << "  \"success\": false,\n"
+                      << "  \"url\": null,\n"
+                      << "  \"error\": \"" << res.error_message << "\",\n"
+                      << "  \"status\": " << static_cast<int>(res.status) << "\n"
+                      << "}\n";
+            return res.exitCode();
+        }
+    }
 
     if (res.status == WpeExtractor::ExtractionStatus::HLS_FOUND) {
         // Section 4 & 34: Normal successful output must be ONLY the URL

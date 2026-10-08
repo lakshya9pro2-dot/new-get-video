@@ -104,6 +104,18 @@ std::string resolveUrl(const std::string& base_url, const std::string& relative_
     return origin + "/" + relative_url;
 }
 
+std::string getOrigin(const std::string& url) {
+    if (url.empty()) return "";
+    size_t proto_end = url.find("://");
+    if (proto_end == std::string::npos) return url;
+
+    size_t host_end = url.find('/', proto_end + 3);
+    if (host_end == std::string::npos) {
+        return url;
+    }
+    return url.substr(0, host_end);
+}
+
 std::string normalizeMimeType(const std::string& raw_mime) {
     std::string mime = trim(toLower(raw_mime));
     size_t semi = mime.find(';');

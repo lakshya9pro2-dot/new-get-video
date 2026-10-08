@@ -122,6 +122,7 @@ No HLS URL found
 | `--user-agent <str>` | Custom browser User-Agent string | Modern Chrome UA |
 | `--referer <str>` | Custom HTTP Referer header for protected streams | None |
 | `--verbose` | Output diagnostic timings and debug information to stderr | Disabled |
+| `--json` | Output result as JSON with `url` and `headers` (`Origin`, `Referer`) | CLI mode |
 | `--server` | Run in lightweight HTTP API server mode | CLI mode |
 | `--port <port>` | Port for the HTTP API server | `8080` |
 | `-h, --help` | Show command-line help and exit | |
@@ -204,7 +205,11 @@ GET /extract?url=<encoded_url>[&fast=1][&timeout=ms][&referer=...]
 ```json
 {
   "success": true,
-  "url": "https://example.com/master.m3u8"
+  "url": "https://example.com/master.m3u8",
+  "headers": {
+    "Origin": "https://example.com",
+    "Referer": "https://example.com"
+  }
 }
 ```
 
